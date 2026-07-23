@@ -84,7 +84,7 @@ def render_alert_queue(scored: pd.DataFrame) -> pd.DataFrame:
     if qape_result["ilp_infeasible"]:
         st.warning(
             "⚠ Không tìm được phân bổ khả thi bằng ILP: tổng chi phí các "
-            "cảnh báo **Critical** (risk_score ≥ 71, bắt buộc xử lý) đã vượt "
+            "cảnh báo bắt buộc xử lý (risk_score ≥ 90) đã vượt "
             "ngân sách hiện tại. Đang hiển thị kết quả từ Greedy (không tối "
             "ưu). Tăng ngân sách ở trên để có phân bổ khả thi bằng ILP."
         )
@@ -275,11 +275,15 @@ def main() -> None:
     col_left, col_right = st.columns(2)
     with col_left:
         candidates = render_alert_queue(scored)
-        render_network_graph(scored, st.session_state.get("focus_account"))
     with col_right:
+        # Lấy giao dịch được chọn TRƯỚC khi vẽ sơ đồ mạng lưới, trong CÙNG
+        # một lần chạy — tránh lỗi trễ 1 nhịp (trước đây đọc focus_account từ
+        # session_state được ghi ở lần chạy TRƯỚC, nên sơ đồ luôn hiển thị
+        # giao dịch chọn ở lần trước, không khớp lựa chọn hiện tại).
         focus_account = render_explanation_panel(candidates)
-        st.session_state["focus_account"] = focus_account
         render_qape_shift_summary(candidates)
+    with col_left:
+        render_network_graph(scored, focus_account)
 
 
 if __name__ == "__main__":
